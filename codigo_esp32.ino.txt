@@ -1,0 +1,59 @@
+#include <WiFi.h>
+#include <PubSubClient.h>
+
+const char* ssid = "SEU_WIFI";
+const char* password = "SUA_SENHA";
+const char* mqtt_server = "broker.hivemq.com";
+
+WiFiClient espClient;
+PubSubClient client(espClient);
+
+const int sensorLDR = 34;
+const int rele = 23;
+
+void reconnect() {
+while (!client.connected()) {
+client.connect("ESP32_Iluminacao");
+}
+}
+
+void setup() {
+Serial.begin(115200);
+
+pinMode(rele, OUTPUT);
+
+WiFi.begin(ssid, password);
+
+while (WiFi.status() != WL_CONNECTED) {
+delay(500);
+}
+
+client.setServer(mqtt_server, 1883);
+}
+
+void loop() {
+
+if (!client.connected()) {
+reconnect();
+}
+
+client.loop();
+
+int luminosidade = analogRead(sensorLDR);
+
+if (luminosidade < 2000) {
+digitalWrite(rele, HIGH);
+} else {
+digitalWrite(rele, LOW);
+}
+
+char msg[10];
+sprintf(msg, "%d", luminosidade);
+
+client.publish(
+"iluminacao/sensor/luminosidade",
+msg
+);
+
+delay(1000);
+}
